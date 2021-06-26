@@ -1,0 +1,120 @@
+{
+    "query":{
+        "bool":{
+            "must": [
+                {"range":{"date":{"gte":"2020-12-15", "lte":"2021-05-30"}}},
+                {"term": {"symbol":"FDLO"}}
+            ]
+        }
+    },
+    "aggs" : {
+        "BBI" : {
+            "date_histogram" : {
+                "field" : "date",
+                "interval" : "1d",
+                "format" : "yyyy-MM-dd"
+            },
+            "aggs": {
+                "TP" : {
+                    "scripted_metric":{
+                        "init_script": "state.totals=[]",
+                        "map_script": "state.totals.add((doc.high.value+doc.low.value+doc.close.value)/3)",
+                        "combine_script": "double total=0; for (t in state.totals) {total += t} return total",
+                        "reduce_script": "return states[0]"
+                    }
+                },
+                "DateStr": {
+                    "min": { "field": "date"}
+                },
+                "STP": {
+                    "bucket_selector": {
+                        "buckets_path": {"count":"_count"},
+                        "script": "params.count > 0"
+                    }
+                },
+                "SMA20": {
+                    "moving_fn" : {"script":"MovingFunctions.unweightedAvg(values)", "window":20, "buckets_path":"TP.value"}
+                },
+
+                "SD20": {
+                    "moving_fn": {"script":"MovingFunctions.stdDev(values, MovingFunctions.unweightedAvg(values))", "window":20, "buckets_path":"TP.value"}
+                },
+                "BBU20": {
+                    "bucket_script": {
+                        "buckets_path": {
+                            "SMA": "SMA20",
+                            "SD": "SD20"
+                        },
+                        "script": "params.SMA + 2 * params.SD"
+                    }
+                },
+                "BBL20": {
+                    "bucket_script": {
+                        "buckets_path": {
+                            "SMA": "SMA20",
+                            "SD": "SD20"
+                        },
+                        "script": "params.SMA - 2 * params.SD"
+                    }
+                },
+                "SMA50": {
+                    "moving_fn" : {"script":"MovingFunctions.unweightedAvg(values)", "window":50, "buckets_path":"TP.value"}
+                },
+                "SD50": {
+                    "moving_fn": {"script":"MovingFunctions.stdDev(values, MovingFunctions.unweightedAvg(values))", "window":50, "buckets_path":"TP.value"}
+                },
+                "BBU50": {
+                    "bucket_script": {
+                        "buckets_path": {
+                            "SMA": "SMA50",
+                            "SD": "SD50"
+                        },
+                        "script": "params.SMA + 2 * params.SD"
+                    }
+                },
+                "BBL50": {
+                    "bucket_script": {
+                        "buckets_path": {
+                            "SMA": "SMA50",
+                            "SD": "SD50"
+                        },
+                        "script": "params.SMA - 2 * params.SD"
+                    }
+                },
+                "BBTrend" :{
+                    "bucket_script": {
+                        "buckets_path": {
+                            "BBU20": "BBU20",
+                            "BBL20": "BBL20",
+                            "BBU50": "BBU50",
+                            "BBL50": "BBL50",
+                            "SMA20" : "SMA20"
+                        },
+                        "script": "(Math.abs(params.BBL20 - params.BBL50) - Math.abs(params.BBU20 - params.BBU50)) / params.SMA20"
+                    }
+                },
+                "BBTrendDiff" :{
+                    "derivative": {
+                        "buckets_path": "BBTrend" 
+                     }
+                },
+                "BBTrendType": {
+                    "bucket_script": {
+                        "buckets_path": {
+                            "BBTrend": "BBTrend",
+                            "BBTrendDiff": "BBTrendDiff"
+                        },
+                        "script": "(params.BBTrend > 0) ? (params.BBTrendDiff > 0 ? 3 : 4) : ((params.BBTrend < 0) ? (params.BBTrendDiff > 0 ? 2 : 1): 0)"
+                    }
+                },
+                "SBBTrend": {
+                    "bucket_selector": {
+                        "buckets_path": {"DateStr":"DateStr"},
+                        "script": "params.DateStr >= 1614556800000L"
+                    }
+                }
+            }
+        }
+    },
+    "size": 0
+}
