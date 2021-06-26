@@ -6,6 +6,6 @@ Create an index, fidelity28_fund and the corresponding data are populated. The d
 
 ./fidelity28_index.sh
 
-After the indices are created and the data are populated, Bollinger Band Width of "Fidelity Low Volatility Factor ETF" (FDLO) is calculated.
+After the indices are created and the data are populated, Bollinger Band Trend of "Fidelity Low Volatility Factor ETF" (FDLO) is calculated.
 
 ./fdlo_bbtrend.sh
