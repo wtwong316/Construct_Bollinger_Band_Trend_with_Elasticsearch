@@ -1,4 +1,5 @@
 Materials for the article "Construct Bollinger Band Trend with Elasticsearch" in Medium
+(https://wtwong316.medium.com/construct-bollinger-band-trend-with-elasticsearch-295ef824048e)
 
 The following steps have been tested with Elasticsearch Server v7.10.1
 
